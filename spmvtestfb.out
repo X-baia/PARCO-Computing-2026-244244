@@ -1,0 +1,62 @@
+gcc-9.1.0 (GCC) 9.1.0
+Copyright (C) 2019 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+Running SEQUENTIAL
+Running OMP CSR
+Running BLOCKED CSR
+All runs complete.
+Extracting best results for each matrix and each approach...
+Processing 1138_bus.mtx ...
+Processing bcsstk13.mtx ...
+Processing west0479.mtx ...
+Processing orani678.mtx ...
+Processing smt.mtx ...
+Processing TEM27623_M.mtx ...
+Processing TSOPF_FS_b39_c7.mtx ...
+Processing bratu3d.mtx ...
+Done!
+Generated:
+ - final_results_all.csv   (all configurations)
+ - final_results_best.csv  (best seq + best omp + best blocked per matrix)
+Saved plots/1138_bus.mtx_p90_ms.png
+Saved plots/bcsstk13.mtx_p90_ms.png
+Saved plots/west0479.mtx_p90_ms.png
+Saved plots/orani678.mtx_p90_ms.png
+Saved plots/smt.mtx_p90_ms.png
+Saved plots/TEM27623_M.mtx_p90_ms.png
+Saved plots/TSOPF_FS_b39_c7.mtx_p90_ms.png
+Saved plots/bratu3d.mtx_p90_ms.png
+Saved plots/1138_bus.mtx_gflops.png
+Saved plots/bcsstk13.mtx_gflops.png
+Saved plots/west0479.mtx_gflops.png
+Saved plots/orani678.mtx_gflops.png
+Saved plots/smt.mtx_gflops.png
+Saved plots/TEM27623_M.mtx_gflops.png
+Saved plots/TSOPF_FS_b39_c7.mtx_gflops.png
+Saved plots/bratu3d.mtx_gflops.png
+Saved plots/1138_bus.mtx_bandwidth.png
+Saved plots/bcsstk13.mtx_bandwidth.png
+Saved plots/west0479.mtx_bandwidth.png
+Saved plots/orani678.mtx_bandwidth.png
+Saved plots/smt.mtx_bandwidth.png
+Saved plots/TEM27623_M.mtx_bandwidth.png
+Saved plots/TSOPF_FS_b39_c7.mtx_bandwidth.png
+Saved plots/bratu3d.mtx_bandwidth.png
+All plots generated in folder: plots
+Saved all_matrices_p90.png
+Saved all_matrices_gflops.png
+Saved all_matrices_bandwidth.png
+All grouped charts created in 'plots/'
+Generating plots for 1138_bus.mtx...
+Generating plots for bcsstk13.mtx...
+Generating plots for west0479.mtx...
+Generating plots for orani678.mtx...
+Generating plots for smt.mtx...
+Generating plots for TEM27623_M.mtx...
+Generating plots for TSOPF_FS_b39_c7.mtx...
+Generating plots for bratu3d.mtx...
+
+All plots saved in: plots
+All plots created in 'plots/' folder.

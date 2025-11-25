@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -N spmvtestfb
+#PBS -o ./spmvtestfb.out
+#PBS -e ./spmvteestfb.err
+#PBS -q short_cpuQ
+#PBS -l walltime=02:30:00
+#PBS -l nodes=1:ppn=32
+#PBS -l mem=16GB
+
+cd "$PBS_O_WORKDIR"
+
+module load gcc91
+module load python-3.8.13
+
+gcc() { gcc-9.1.0 "$@"; }
+gcc --version
+
+gcc -O3 -fopenmp sequential_spmv.c mmio.c -o sequential_spmv
+gcc -O3 -fopenmp parallel_omp_spmv_complete.c mmio.c -o parallel_omp_spmv_complete
+gcc -O3 -fopenmp csr_blocked.c mmio.c -o csr_blocked
+
+chmod +x final.sh
+
+./final.sh
+
