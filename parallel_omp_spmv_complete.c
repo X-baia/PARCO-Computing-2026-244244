@@ -1,21 +1,3 @@
-/*
- * How to run the code:
- *   Loop mode : ./parallel_omp_spmv_complete matrix.mtx [threads] loop [static|dynamic|guided] [chunk]
- *   Task mode : ./parallel_omp_spmv_complete matrix.mtx [threads] task [chunk_rows]
- *   Inner mode: ./parallel_omp_spmv_complete matrix.mtx [threads] inner [chunk]
- *   Collapse : ./parallel_omp_spmv_complete matrix.mtx [threads] collapse
- *
- * How to compile: gcc -O2 -fopenmp parallel_omp_spmv_complete.c -o spmv_omp
- *
- * What have i done:
- *  - The "inner" function parallelizes the inner (nonzero) loop using a reduction per row.
- *    It is mainly useful for matrices with very few rows but many nonzeros per row.
- *  - The "collapse" functions builds a rectangular iteration space using the maximum row length
- *    and uses collapse(2) + atomic updates to y. This is intentionally heavyweight
- *    in order to test it; it typically performs worse due to atomics and wasted
- *    loop iterations.
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>

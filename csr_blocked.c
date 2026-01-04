@@ -1,21 +1,3 @@
-/*
- * csr_blocked.c
- *
- * CPU-only, cache-blocked CSR SpMV with tunable OpenMP schedule.
- * Compatible with GCC 9.1.
- *
- * Build:
- *   gcc -O3 -fopenmp csr_blocked.c mmio.c -o csr_blocked
- *
- * Usage:
- *   ./csr_blocked matrix.mtx [threads] [block_rows] [schedule]
- *
- *   schedule: 0=static, 1=dynamic, 2=guided
- *
- * Outputs:
- *   - Only the 90th percentile execution time in milliseconds
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>

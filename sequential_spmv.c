@@ -1,17 +1,3 @@
-/*
- * Sequential Sparse Matrix-Vector Multiplication (SpMV)
- * -----------------------------------------------------
- * 1. Reads a sparse matrix in Matrix Market (.mtx) format.
- * 2. Converts it to Compressed Sparse Row (CSR) format.
- * 3. Multiplies it by a randomly generated dense vector.
- * 4. Runs the multiplication 10 times and reports the 90th percentile runtime.
- *
- * Compile: gcc -O2 -fopenmp sequential_spmv.c -o sequential_spmv
- * Run:     ./sequential_spmv matrix.mtx
- */
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
