@@ -1,0 +1,174 @@
+#!/bin/bash
+#PBS -N spmv_mpiomp
+#PBS -o spmv_mpiomp.out
+#PBS -e spmv_mpiomp.err
+#PBS -q short_cpuQ
+#PBS -l walltime=02:30:00
+#PBS -l nodes=2:ppn=64
+#PBS -l mem=64GB
+
+
+set -euo pipefail
+
+cd "${PBS_O_WORKDIR:?PBS_O_WORKDIR not set}" || exit 1
+
+echo "Running in directory: $PWD"
+echo "Job started at: $(date)"
+
+module purge
+module load gcc91
+module load mpich-3.2.1--gcc-9.1.0
+module load python-3.8.13
+
+echo "Compiler:"
+mpicc --version || true
+
+echo "MPI:"
+mpiexec --version 2>/dev/null || mpirun --version || true
+
+echo "================ RESOURCE INFO ================"
+echo "PBS_NODEFILE=${PBS_NODEFILE:-<unset>}"
+if [[ -n "${PBS_NODEFILE:-}" && -f "$PBS_NODEFILE" ]]; then
+  echo "Total slots (lines): $(wc -l < "$PBS_NODEFILE")"
+  echo "Nodes (allocation order):"
+  awk '!seen[$0]++{print $0}' "$PBS_NODEFILE" | nl -ba
+  echo "Per-node slots:"
+  awk '{c[$0]++} END{for(k in c){printf "%s %d\n",k,c[k]}}' "$PBS_NODEFILE" | sort
+else
+  echo "WARNING: PBS_NODEFILE not found!"
+fi
+echo "================================================"
+
+
+export OMP_DYNAMIC=FALSE
+export OMP_WAIT_POLICY=active
+
+
+STRONG_DIR="$PBS_O_WORKDIR/matrices/strong"
+WEAK_DIR="$PBS_O_WORKDIR/matrices/weak"
+mkdir -p "$STRONG_DIR" "$WEAK_DIR"
+
+echo "===== PREPARING MATRICES (strong download + weak generation) ====="
+
+# Strong matrices: download only if missing
+STRONG_SCRIPT="$STRONG_DIR/download_matrices.py"
+strong_missing=0
+for f in af_shell9.mtx thermal2.mtx poisson.mtx amazon0312.mtx ecology2.mtx webbase-1M.mtx; do
+  if [[ ! -f "$STRONG_DIR/$f" ]]; then
+    strong_missing=1
+    break
+  fi
+done
+
+if [[ -f "$STRONG_SCRIPT" ]]; then
+  if (( strong_missing == 1 )); then
+    echo "[strong] Missing matrices -> running download script: $STRONG_SCRIPT"
+    python3 "$STRONG_SCRIPT"
+  else
+    echo "[strong] All strong matrices present -> skipping download."
+  fi
+else
+  echo "WARNING: strong download script not found at: $STRONG_SCRIPT"
+  echo "         (continuing, assuming matrices already exist)"
+fi
+
+# Weak matrices: generate only if missing
+WEAK_SCRIPT="$WEAK_DIR/weak_generator.py"
+weak_missing=0
+for r in 1 2 4 8 16 32 64 81 100 121 128; do
+  if [[ ! -f "$WEAK_DIR/poisson_weak_${r}.mtx" ]]; then
+    weak_missing=1
+    break
+  fi
+done
+
+if [[ -f "$WEAK_SCRIPT" ]]; then
+  if (( weak_missing == 1 )); then
+    echo "[weak] Missing weak matrices -> generating in: $WEAK_DIR"
+    pushd "$WEAK_DIR" >/dev/null
+    python3 "$(basename "$WEAK_SCRIPT")"
+    popd >/dev/null
+  else
+    echo "[weak] All weak matrices present -> skipping generation."
+  fi
+else
+  echo "WARNING: weak generator script not found at: $WEAK_SCRIPT"
+  echo "         (continuing, assuming weak matrices already exist)"
+fi
+
+
+JOBID_SAFE="${PBS_JOBID:-$$}"
+
+
+STAGE_BASE="${PBS_JOBFS:-}"
+CLEAN_STAGE=0
+if [[ -z "$STAGE_BASE" ]]; then
+  STAGE_BASE="$PBS_O_WORKDIR/.job_${JOBID_SAFE}"
+  CLEAN_STAGE=1
+else
+  CLEAN_STAGE=1
+fi
+
+MATRIX_ROOT="$STAGE_BASE"
+export MATRIX_ROOT
+
+cleanup() {
+  echo "===== CLEANUP ====="
+  if (( CLEAN_STAGE == 1 )); then
+    echo "[cleanup] removing staged dir: ${MATRIX_ROOT}"
+    rm -rf "${MATRIX_ROOT}" || true
+  else
+    echo "[cleanup] CLEAN_STAGE=0 -> skipping removal"
+  fi
+  echo "==================="
+}
+trap cleanup EXIT INT TERM
+
+echo "===== STAGING MATRICES into: $MATRIX_ROOT ====="
+mkdir -p "$MATRIX_ROOT/matrices"
+
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a --delete --info=progress2 "$PBS_O_WORKDIR/matrices/" "$MATRIX_ROOT/matrices/"
+else
+  rm -rf "$MATRIX_ROOT/matrices"
+  mkdir -p "$MATRIX_ROOT/matrices"
+  cp -a "$PBS_O_WORKDIR/matrices/." "$MATRIX_ROOT/matrices/"
+fi
+
+echo "[stage] strong (top 20):"; ls -lh "$MATRIX_ROOT/matrices/strong" | head -n 20
+echo "[stage] weak   (top 20):"; ls -lh "$MATRIX_ROOT/matrices/weak"   | head -n 20
+echo "================================================="
+
+###############################################################################
+#Compile
+###############################################################################
+echo "Compiling 1D SpMV..."
+mpicc -O3 -std=c11 -fopenmp spmv_1d.c mmio.c -o spmv_1d -lm
+
+echo "Compiling 2D SpMV..."
+mpicc -O3 -std=c11 -fopenmp spmv_2d.c mmio.c -o spmv_2d -lm
+
+chmod +x testing_1d_spmv.sh testing_2d_spmv.sh 2>/dev/null || true
+
+###############################################################################
+#Run tests
+###############################################################################
+echo "===== RUNNING 1D SpMV TESTS ====="
+./testing_1d_spmv.sh
+
+echo "===== RUNNING 2D SpMV TESTS ====="
+./testing_2d_spmv.sh
+
+###############################################################################
+#Generate plots
+###############################################################################
+if [[ -f plot_results.py ]]; then
+  echo "===== GENERATING PLOTS ====="
+  python3 plot_results.py \
+    1d_spmv_results_mpi.csv 1d_spmv_results_hybrid.csv \
+    2d_spmv_results_mpi.csv 2d_spmv_results_hybrid.csv
+else
+  echo "plot_results.py not found, skipping plots."
+fi
+
+echo "Job finished at: $(date)"
